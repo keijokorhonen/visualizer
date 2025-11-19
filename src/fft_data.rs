@@ -12,7 +12,7 @@ use crate::filters::{
     SpatialFilter,
     GaussianFilter,
     TemporalFilter,
-    ExponentialFilter,
+    PeakHoldDecayFilter,
     BinLayout
 };
 
@@ -50,12 +50,12 @@ impl FFTData {
                 // Arc::new(AWeightingFilter::new()),
                 Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
                 ],
-            temporal_filters: vec![Arc::new(Mutex::new(ExponentialFilter::new(0.2)))],
+            temporal_filters: vec![Arc::new(Mutex::new(PeakHoldDecayFilter::new(0.9)))],
             layout: Arc::new(Mutex::new(layout)),
             window_rms: Arc::new(Mutex::new(0.0)),
-            rms_reference: 0.5, // full-scale reference
-            rms_floor: 0.01,    // below this treated as silence
-            rms_gamma: 0.8,     // curve shaping
+            rms_reference: 0.6,
+            rms_floor: 0.01,
+            rms_gamma: 0.7,
         };
         fft.refresh_layout_filters();
         fft
@@ -155,6 +155,7 @@ impl FFTData {
             let norm = (window_rms - self.rms_floor) / (self.rms_reference - self.rms_floor);
             norm.clamp(0.0, 1.0).powf(self.rms_gamma)
         };
+
         let scale = loudness / peak;
         for b in bins.iter_mut() {
             *b = (*b * scale).min(1.0);

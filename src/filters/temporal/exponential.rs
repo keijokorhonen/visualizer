@@ -1,5 +1,8 @@
 use crate::filters::TemporalFilter;
 
+/// Simple exponential smoothing filter.
+/// Applies: alpha * x[n] + (1 - alpha) * y[n]
+/// where y is the previous input, x is the new input, and alpha is the smoothing factor.
 pub struct ExponentialFilter {
     alpha: f32,
     prev: Vec<f32>,
@@ -21,8 +24,5 @@ impl TemporalFilter for ExponentialFilter {
             self.prev[i] = y;
             *x = y;
         }
-    }
-    fn reset(&mut self) {
-        self.prev.fill(0.0);
     }
 }

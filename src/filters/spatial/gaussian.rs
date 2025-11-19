@@ -1,5 +1,10 @@
 use crate::filters::SpatialFilter;
 
+/// Gaussian spatial filter.
+/// Applies a Gaussian blur to the input samples.
+/// The filter is defined by its standard deviation (sigma) and radius.
+/// The kernel is computed once during initialization.
+/// The filter can be applied multiple times (num_passes) for a stronger effect.
 pub struct GaussianFilter {
     pub sigma: f32,
     pub radius: usize,
