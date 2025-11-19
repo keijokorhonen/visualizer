@@ -14,8 +14,7 @@ impl EguiFrontend {
     pub fn new(fft: FFTData) -> Self { Self { fft } }
 
     fn plot_spectrum(&self, ui: &mut egui::Ui) {
-        let num_bins = 40;
-        let bins= self.fft.visualization_data(num_bins);
+        let bins= self.fft.visualization_data();
         let bars: Vec<Bar> = bins.iter().enumerate()
             .filter_map(|(i, &y)| {
                 if y >= 0.0 {
@@ -33,7 +32,7 @@ impl EguiFrontend {
         
         Plot::new("fft_plot")
         .include_y(0.0)
-        // .include_y(10.0)
+        .include_y(1.0)
         .show(ui, |plot_ui| {
             plot_ui.bar_chart(
                 BarChart::new(String::from("FFT"),

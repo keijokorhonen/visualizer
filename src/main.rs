@@ -7,6 +7,7 @@ use load_audio::load_samples_from_file;
 
 fn main() {
     let window_size = 4096;
+    let num_bins = 50;
 
     // Load audio samples from file provided as command line argument
     let (samples, sample_rate) = {
@@ -20,7 +21,7 @@ fn main() {
     let config = device.default_output_config().unwrap();
     
     // Initialize FFT data
-    let fft_data = FFTData::new(sample_rate, window_size);
+    let fft_data = FFTData::new(sample_rate, window_size, num_bins);
     let fft_data_cb = fft_data.clone();
 
     let channels = config.channels() as usize;

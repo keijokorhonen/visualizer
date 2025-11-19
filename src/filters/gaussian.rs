@@ -1,15 +1,19 @@
+use crate::filters::SpatialFilter;
+
 pub struct GaussianFilter {
     pub sigma: f32,
     pub radius: usize,
     pub kernel: Vec<f32>,
+    pub num_passes: usize,
 }
 
 impl GaussianFilter {
-    pub fn new(sigma: f32, radius: usize) -> Self {
+    pub fn new(sigma: f32, radius: usize, num_passes: usize) -> Self {
         Self {
             sigma,
             radius,
             kernel: Self::compute_kernel(sigma, radius),
+            num_passes,
         }
     }
 
@@ -30,15 +34,12 @@ impl GaussianFilter {
         }
         kernel
     }
-}
 
-impl crate::filters::SpatialFilter for GaussianFilter {
-    /// Apply Gaussian filter to the input samples in-place.
-    /// Convolves the samples with the Gaussian kernel.
-    fn process(&self, samples: &mut [f32]) {
+    fn apply_single_pass(&self, samples: &mut [f32]) {
         let mut out = vec![0.0f32; samples.len()];
+        
         let num_samples = samples.len();
-
+    
         for i in 0..num_samples {
             let mut acc = 0.0;
             for (k, &weight) in self.kernel.iter().enumerate() {
@@ -52,4 +53,16 @@ impl crate::filters::SpatialFilter for GaussianFilter {
         
         samples.copy_from_slice(&out);
     }
+}
+
+impl SpatialFilter for GaussianFilter {
+    /// Apply Gaussian filter to the input samples in-place.
+    /// Convolves the samples with the Gaussian kernel.
+    fn process(&self, samples: &mut [f32]) {
+        for _ in 0..self.num_passes {
+            self.apply_single_pass(samples);
+        }
+    }
+
+    fn priority(&self) -> usize { 50 }
 }
