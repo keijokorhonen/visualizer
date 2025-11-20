@@ -1,6 +1,6 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use visualizer::{FFTData, FrontendKind, make_frontend};
+use visualizer::{Visualizer, FrontendKind, make_frontend};
 
 mod load_audio;
 use load_audio::load_samples_from_file;
@@ -21,8 +21,8 @@ fn main() {
     let config = device.default_output_config().unwrap();
     
     // Initialize FFT data
-    let fft_data = FFTData::new(sample_rate, window_size, num_bins);
-    let fft_data_cb = fft_data.clone();
+    let visualizer = Visualizer::new(sample_rate, window_size, num_bins);
+    let visualizer_cb = visualizer.clone();
 
     let channels = config.channels() as usize;
     let mut sample_pos = 0;
@@ -41,10 +41,10 @@ fn main() {
             }
 
             // For visualization: process FFT on current window
-            if sample_pos >= fft_data_cb.window_size {
-                let start = sample_pos - fft_data_cb.window_size;
+            if sample_pos >= visualizer_cb.window_size {
+                let start = sample_pos - visualizer_cb.window_size;
                 let window_samples = &samples[start..sample_pos];
-                fft_data_cb.update_spectrum(&window_samples);
+                visualizer_cb.update_spectrum(&window_samples);
             }
         },
         move |err| {
@@ -55,6 +55,6 @@ fn main() {
 
     stream.play().unwrap();
 
-    let frontend = make_frontend(FrontendKind::Egui, fft_data);
+    let frontend = make_frontend(FrontendKind::Egui, visualizer);
     frontend.run();
 }

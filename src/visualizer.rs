@@ -17,7 +17,7 @@ use crate::filters::{
 };
 
 #[derive(Clone)]
-pub struct FFTData {
+pub struct Visualizer {
     spectrum: Arc<Mutex<Option<FrequencySpectrum>>>,
     pub sample_rate: u32,
     pub window_size: usize,
@@ -33,13 +33,13 @@ pub struct FFTData {
     rms_gamma: f32,
 }
 
-impl FFTData {
+impl Visualizer {
     /// Default constructor. Frequency limits set to 20 Hz - Nyquist.
     pub fn new(sample_rate: u32, window_size: usize, num_bins: usize) -> Self {
         let min_freq = 20.0;
         let max_freq = sample_rate as f32 / 2.0;
         let layout = Self::build_layout(num_bins, min_freq, max_freq, true);
-        let fft = FFTData {
+        let visualizer = Self {
             spectrum: Arc::new(Mutex::new(None)),
             sample_rate,
             window_size,
@@ -57,8 +57,8 @@ impl FFTData {
             rms_floor: 0.01,
             rms_gamma: 0.7,
         };
-        fft.refresh_layout_filters();
-        fft
+        visualizer.refresh_layout_filters();
+        visualizer
     }
 
     fn build_layout(num_bins: usize, min_freq: f32, max_freq: f32, log: bool) -> BinLayout {

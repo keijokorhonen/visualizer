@@ -2,20 +2,19 @@ use egui::Color32;
 use egui_plot::{Plot, BarChart, Bar};
 use std::time::Duration;
 
-use crate::fft_data::FFTData;
+use crate::Visualizer;
 
 /// Egui application struct for visualizing FFT data.
 /// Holds a reference to FFTData.
 #[derive(Clone)]
 pub struct EguiFrontend {
-    pub fft: FFTData,
+    pub visualizer: Visualizer,
 }
 
 impl EguiFrontend {
-    pub fn new(fft: FFTData) -> Self { Self { fft } }
-
+    pub fn new(visualizer: Visualizer) -> Self { Self { visualizer } }
     fn plot_spectrum(&self, ui: &mut egui::Ui) {
-        let bins= self.fft.visualization_data();
+        let bins= self.visualizer.visualization_data();
         let bars: Vec<Bar> = bins.iter().enumerate()
             .filter_map(|(i, &y)| {
                 if y >= 0.0 {
