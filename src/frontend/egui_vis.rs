@@ -1,3 +1,4 @@
+use egui::Color32;
 use egui_plot::{Plot, BarChart, Bar};
 use std::time::Duration;
 
@@ -33,6 +34,11 @@ impl EguiFrontend {
         Plot::new("fft_plot")
         .include_y(0.0)
         .include_y(1.0)
+        .show_axes(false)
+        .show_grid(false)
+        .cursor_color(Color32::TRANSPARENT)
+        .show_x(false)
+        .show_y(false)
         .show(ui, |plot_ui| {
             plot_ui.bar_chart(
                 BarChart::new(String::from("FFT"),
