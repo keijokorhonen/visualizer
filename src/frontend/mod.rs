@@ -6,6 +6,10 @@ pub use egui_vis::EguiFrontend;
 
 use crate::Visualizer;
 
+use std::sync::{
+    Arc, Mutex,
+};
+
 pub trait VisualizerFrontend {
     fn run(&self);
 }
@@ -15,7 +19,7 @@ pub enum FrontendKind {
     // Bevy,
 }
 
-pub fn make_frontend(kind: FrontendKind, visualizer: Visualizer) -> Box<dyn VisualizerFrontend> {
+pub fn make_frontend(kind: FrontendKind, visualizer: Arc<Mutex<Visualizer>>) -> Box<dyn VisualizerFrontend> {
     match kind {
         FrontendKind::Egui => Box::new(EguiFrontend::new(visualizer)),
         // FrontendKind::Bevy => Box::new(bevy_vis::BevyFrontend::new(visualizer)),

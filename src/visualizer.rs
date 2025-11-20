@@ -16,9 +16,8 @@ use crate::filters::{
     BinLayout
 };
 
-#[derive(Clone)]
 pub struct Visualizer {
-    spectrum: Arc<Mutex<Option<FrequencySpectrum>>>,
+    spectrum: Option<FrequencySpectrum>,
     pub sample_rate: u32,
     pub window_size: usize,
     pub num_bins: usize,
@@ -26,8 +25,8 @@ pub struct Visualizer {
     max_freq: f32,
     spatial_filters: Vec<Arc<Mutex<dyn SpatialFilter>>>,
     temporal_filters: Vec<Arc<Mutex<dyn TemporalFilter>>>,
-    layout: Arc<Mutex<BinLayout>>,
-    window_rms: Arc<Mutex<f32>>,
+    layout: BinLayout,
+    window_rms: f32,
     rms_reference: f32,
     rms_floor: f32,
     rms_gamma: f32,
@@ -40,7 +39,7 @@ impl Visualizer {
         let max_freq = sample_rate as f32 / 2.0;
         let layout = Self::build_layout(num_bins, min_freq, max_freq, true);
         let visualizer = Self {
-            spectrum: Arc::new(Mutex::new(None)),
+            spectrum: None,
             sample_rate,
             window_size,
             num_bins,
@@ -51,8 +50,8 @@ impl Visualizer {
                 Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
                 ],
             temporal_filters: vec![Arc::new(Mutex::new(AttackReleaseFilter::new(0.7, 0.9)))],
-            layout: Arc::new(Mutex::new(layout)),
-            window_rms: Arc::new(Mutex::new(0.0)),
+            layout: layout,
+            window_rms: 0.0,
             rms_reference: 0.6,
             rms_floor: 0.01,
             rms_gamma: 0.7,
@@ -80,15 +79,14 @@ impl Visualizer {
     }
 
     fn refresh_layout_filters(&self) {
-        let layout = self.layout.lock().unwrap();
         for filter in &self.spatial_filters {
             if let Ok(mut f) = filter.lock() {
-                f.on_layout_change(&layout);
+                f.on_layout_change(&self.layout);
             }
         }
     }
 
-    pub fn update_spectrum(&self, samples: &[f32]) {
+    pub fn update_spectrum(&mut self, samples: &[f32]) {
         let window = hann_window(&samples[0..self.window_size]);
         let mut rms = 0.0_f32;
         for &x in samples.iter().take(self.window_size) {
@@ -96,7 +94,7 @@ impl Visualizer {
         }
         rms /= self.window_size as f32;
         rms = rms.sqrt();
-        *self.window_rms.lock().unwrap() = rms;
+        self.window_rms = rms;
 
         let spectrum = samples_fft_to_spectrum(
             &window,
@@ -105,19 +103,29 @@ impl Visualizer {
             Some(&divide_by_N_sqrt),
         ).ok();
 
-        let mut data_guard = self.spectrum.lock().unwrap();
-        *data_guard = spectrum;
+        self.spectrum = spectrum;
     }
 
     pub fn set_num_bins(&mut self, num_bins: usize) {
         self.num_bins = num_bins.max(1);
-        *self.layout.lock().unwrap() = Self::build_layout(
+        self.layout = Self::build_layout(
             self.num_bins,
             self.min_freq,
             self.max_freq,
             true
         );
         self.refresh_layout_filters();
+    }
+
+    pub fn set_window_size(&mut self, window_size: usize) {
+        if window_size == self.window_size { return; }
+        self.window_size = window_size.max(1);
+        // clear current spectrum so stale data not reused
+        self.spectrum = None;
+        // reset temporal filters (length changes)
+        for tf in &self.temporal_filters {
+            if let Ok(mut f) = tf.lock() { f.reset(); }
+        }
     }
 
     pub fn add_spatial_filter<F: SpatialFilter + 'static>(&mut self, f: F) {
@@ -148,7 +156,7 @@ impl Visualizer {
     fn apply_norm(&self, bins: &mut Vec<f32>) {
         for p in bins.iter_mut() { *p = p.sqrt(); }
         let peak = bins.iter().fold(0.0_f32, |m, v| m.max(*v)).max(1e-12);
-        let window_rms = *self.window_rms.lock().unwrap();
+        let window_rms = self.window_rms;
         let loudness = if window_rms <= self.rms_floor {
             0.0
         } else {
@@ -156,7 +164,7 @@ impl Visualizer {
             norm.clamp(0.0, 1.0).powf(self.rms_gamma)
         };
 
-        let scale = loudness / peak;
+        let scale = loudness.max(0.001) / peak;
         for b in bins.iter_mut() {
             *b = (*b * scale).min(1.0);
         }
@@ -165,13 +173,12 @@ impl Visualizer {
     fn binned_spectrum(&self, num_bins: usize) -> Vec<f32> {
         let mut bins = vec![0.0; num_bins];
 
-        let data_guard = self.spectrum.lock().unwrap();
-        let spectrum = match data_guard.as_ref() {
+        let spectrum = match self.spectrum.as_ref() {
             Some(spectrum) => spectrum,
             None => return bins,
         };
 
-        let layout = self.layout.lock().unwrap().clone();
+        let layout = self.layout.clone();
 
         for &(freq, mag) in spectrum.data() {
             let freq_val = freq.val().ln();

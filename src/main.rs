@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use visualizer::{Visualizer, FrontendKind, make_frontend};
@@ -21,11 +23,12 @@ fn main() {
     let config = device.default_output_config().unwrap();
     
     // Initialize FFT data
-    let visualizer = Visualizer::new(sample_rate, window_size, num_bins);
+    let visualizer = Arc::new(Mutex::new(Visualizer::new(sample_rate, window_size, num_bins)));
     let visualizer_cb = visualizer.clone();
 
     let channels = config.channels() as usize;
     let mut sample_pos = 0;
+    
     let stream = device.build_output_stream(
         &config.into(),
         move |output: &mut [f32], _: &cpal::OutputCallbackInfo| {
@@ -41,10 +44,13 @@ fn main() {
             }
 
             // For visualization: process FFT on current window
-            if sample_pos >= visualizer_cb.window_size {
-                let start = sample_pos - visualizer_cb.window_size;
-                let window_samples = &samples[start..sample_pos];
-                visualizer_cb.update_spectrum(&window_samples);
+            if let Ok(mut vis) = visualizer_cb.lock() {
+                let window_size_cur = vis.window_size;
+                if sample_pos >= window_size_cur {
+                    let start = sample_pos - window_size_cur;
+                    let window_samples = &samples[start..sample_pos];
+                    vis.update_spectrum(&window_samples);
+                }
             }
         },
         move |err| {
