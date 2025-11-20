@@ -12,7 +12,7 @@ use crate::filters::{
     SpatialFilter,
     GaussianFilter,
     TemporalFilter,
-    PeakHoldDecayFilter,
+    AttackReleaseFilter,
     BinLayout
 };
 
@@ -50,7 +50,7 @@ impl FFTData {
                 // Arc::new(AWeightingFilter::new()),
                 Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
                 ],
-            temporal_filters: vec![Arc::new(Mutex::new(PeakHoldDecayFilter::new(0.9)))],
+            temporal_filters: vec![Arc::new(Mutex::new(AttackReleaseFilter::new(0.7, 0.9)))],
             layout: Arc::new(Mutex::new(layout)),
             window_rms: Arc::new(Mutex::new(0.0)),
             rms_reference: 0.6,

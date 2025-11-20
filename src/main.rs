@@ -6,7 +6,7 @@ mod load_audio;
 use load_audio::load_samples_from_file;
 
 fn main() {
-    let window_size = 4096;
+    let window_size = 2048;
     let num_bins = 50;
 
     // Load audio samples from file provided as command line argument
