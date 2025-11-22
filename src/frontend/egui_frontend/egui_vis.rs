@@ -8,9 +8,9 @@ use crate::Visualizer;
 use crate::frontend::egui_frontend::UiComponent;
 
 #[derive(Clone, Copy, PartialEq)]
-struct ControlSettings {
-    num_bins: usize,
-    window_size: usize,
+pub struct ControlSettings {
+    pub num_bins: usize,
+    pub window_size: usize,
 }
 
 impl ControlSettings {
@@ -93,9 +93,9 @@ impl eframe::App for EguiFrontend {
             .anchor(egui::Align2::RIGHT_TOP, egui::Vec2::new(-20.0, 20.0))
             .show(ctx, |ui| {
                 egui::CollapsingHeader::new("Visualizer Controls").show(ui, |ui| {
-                    ui.set_width(240.0);
+                    ui.set_width(300.0);
 
-                    let (orig_settings, sample_rate) = if let Ok(vis) = self.visualizer.lock() {
+                    let (orig_settings, _sample_rate) = if let Ok(vis) = self.visualizer.lock() {
                         (ControlSettings::from_visualizer(&vis), vis.sample_rate)
                     } else {
                         return;
@@ -103,33 +103,23 @@ impl eframe::App for EguiFrontend {
 
                     let mut edited_settings = orig_settings;
 
-                    ui.horizontal(|ui| {
-                        ui.label("Bins:");
-                        ui.style_mut().spacing.slider_width = 200.0;
-                        ui.add(egui::Slider::new(&mut edited_settings.num_bins, 8..=256));
-                    });
-
-                    ui.separator();
-
-                    ui.horizontal(|ui| {
-                        ui.label("Window size:");
-                        for size in [512, 1024, 2048, 4096, 8192] {
-                            ui.selectable_value(
-                                &mut edited_settings.window_size,
-                                size,
-                                size.to_string(),
-                            );
-                        }
-                        // let effective_min =
-                        //     (sample_rate as f32 / edited_settings.window_size as f32) / 2.0;
-                        // ui.label(format!("(Min. Frequency ≈ {:.1} Hz)", effective_min));
-                    });
-
+                    edited_settings.ui(ui);
                     ui.separator();
 
                     ui.label("Spatial Filters:");
                     if let Ok(vis) = self.visualizer.lock() {
                         for f in &vis.spatial_filters {
+                            if let Ok(mut filter) = f.lock() {
+                                filter.ui(ui);
+                            }
+                        }
+                    }
+
+                    ui.separator();
+
+                    ui.label("Temporal Filters:");
+                    if let Ok(vis) = self.visualizer.lock() {
+                        for f in &vis.temporal_filters {
                             if let Ok(mut filter) = f.lock() {
                                 filter.ui(ui);
                             }

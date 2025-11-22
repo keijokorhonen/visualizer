@@ -40,8 +40,8 @@ impl Visualizer {
             min_freq,
             max_freq,
             spatial_filters: vec![
-                Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
                 Arc::new(Mutex::new(AWeightingFilter::new())),
+                Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
             ],
             temporal_filters: vec![Arc::new(Mutex::new(AttackReleaseFilter::new(0.7, 0.9)))],
             layout: layout,

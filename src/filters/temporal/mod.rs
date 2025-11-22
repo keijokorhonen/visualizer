@@ -6,7 +6,9 @@ pub use attackrelease::AttackReleaseFilter;
 pub use exponential::ExponentialFilter;
 pub use peakholddecay::PeakHoldDecayFilter;
 
-pub trait TemporalFilter: Send + Sync {
+use crate::frontend::egui_frontend::UiComponent;
+
+pub trait TemporalFilter: Send + Sync + UiComponent {
     fn process(&mut self, samples: &mut [f32]);
     fn state_vec(&mut self) -> Option<&mut Vec<f32>> {
         None

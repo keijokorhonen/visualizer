@@ -9,6 +9,7 @@ pub struct AttackReleaseFilter {
     pub attack_alpha: f32,
     pub release_alpha: f32,
     pub prev: Vec<f32>,
+    pub enabled: bool,
 }
 
 impl AttackReleaseFilter {
@@ -17,6 +18,7 @@ impl AttackReleaseFilter {
             attack_alpha,
             release_alpha,
             prev: Vec::new(),
+            enabled: true,
         }
     }
 }
