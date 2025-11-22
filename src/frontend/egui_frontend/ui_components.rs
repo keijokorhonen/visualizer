@@ -42,7 +42,7 @@ impl UiComponent for GaussianFilter {
             ui.add(
                 egui::DragValue::new(&mut self.radius)
                     .speed(1)
-                    .range(0..=128)
+                    .range(0..=20)
                     .prefix("r="),
             );
             ui.add(
