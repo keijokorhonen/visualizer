@@ -1,4 +1,4 @@
-use crate::filters::{SpatialFilter, BinLayout};
+use crate::filters::{BinLayout, SpatialFilter};
 
 const C1: f32 = 20.6_f32 * 20.6_f32;
 const C2: f32 = 107.7_f32 * 107.7_f32;
@@ -8,9 +8,9 @@ const A0: f32 = 1.2589254; // 10^(2/20)
 
 /// A-weighting filter implementation.
 /// https://en.wikipedia.org/wiki/A-weighting#A
-/// 
+///
 /// Attributes:
-/// 
+///
 /// * weights: Precomputed weights for each frequency bin.
 pub struct AWeightingFilter {
     weights: Vec<f32>,
@@ -18,12 +18,16 @@ pub struct AWeightingFilter {
 
 impl AWeightingFilter {
     pub fn new() -> Self {
-        Self { weights: Vec::new() }
+        Self {
+            weights: Vec::new(),
+        }
     }
 
     #[inline]
     fn compute_weight(f: f32) -> f32 {
-        if f <= 0.0 { return 0.0; }
+        if f <= 0.0 {
+            return 0.0;
+        }
         let f2 = f * f;
         let num = C4 * f2 * f2;
         let den = (f2 + C1) * (f2 + C4) * ((f2 + C2) * (f2 + C3)).sqrt();
@@ -34,7 +38,9 @@ impl AWeightingFilter {
 
 impl SpatialFilter for AWeightingFilter {
     fn on_layout_change(&mut self, layout: &BinLayout) {
-        self.weights = layout.centers.iter()
+        self.weights = layout
+            .centers
+            .iter()
             .map(|&f| Self::compute_weight(f))
             .collect();
     }
@@ -45,5 +51,7 @@ impl SpatialFilter for AWeightingFilter {
         }
     }
 
-    fn priority(&self) -> usize { 10 }
+    fn priority(&self) -> usize {
+        10
+    }
 }

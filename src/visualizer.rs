@@ -1,19 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-use spectrum_analyzer::{
-    FrequencySpectrum,
-    samples_fft_to_spectrum,
-    FrequencyLimit,
-};
 use spectrum_analyzer::scaling::divide_by_N_sqrt;
 use spectrum_analyzer::windows::hann_window;
+use spectrum_analyzer::{FrequencyLimit, FrequencySpectrum, samples_fft_to_spectrum};
 
 use crate::filters::{
-    SpatialFilter,
-    GaussianFilter,
-    TemporalFilter,
-    AttackReleaseFilter,
-    BinLayout
+    AttackReleaseFilter, BinLayout, GaussianFilter, SpatialFilter, TemporalFilter,
 };
 
 pub struct Visualizer {
@@ -21,6 +13,7 @@ pub struct Visualizer {
     pub sample_rate: u32,
     pub window_size: usize,
     pub num_bins: usize,
+    base_min_freq: f32,
     min_freq: f32,
     max_freq: f32,
     spatial_filters: Vec<Arc<Mutex<dyn SpatialFilter>>>,
@@ -43,12 +36,13 @@ impl Visualizer {
             sample_rate,
             window_size,
             num_bins,
+            base_min_freq: min_freq,
             min_freq,
             max_freq,
             spatial_filters: vec![
                 // Arc::new(AWeightingFilter::new()),
                 Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
-                ],
+            ],
             temporal_filters: vec![Arc::new(Mutex::new(AttackReleaseFilter::new(0.7, 0.9)))],
             layout: layout,
             window_rms: 0.0,
@@ -75,7 +69,14 @@ impl Visualizer {
             };
             centers.push(f);
         }
-        BinLayout { centers, min_freq, max_freq, log_min, log_max, spacing_log: log }
+        BinLayout {
+            centers,
+            min_freq,
+            max_freq,
+            log_min,
+            log_max,
+            spacing_log: log,
+        }
     }
 
     fn refresh_layout_filters(&self) {
@@ -101,39 +102,49 @@ impl Visualizer {
             self.sample_rate,
             FrequencyLimit::Range(self.min_freq, self.max_freq),
             Some(&divide_by_N_sqrt),
-        ).ok();
+        )
+        .ok();
 
         self.spectrum = spectrum;
     }
 
     pub fn set_num_bins(&mut self, num_bins: usize) {
         self.num_bins = num_bins.max(1);
-        self.layout = Self::build_layout(
-            self.num_bins,
-            self.min_freq,
-            self.max_freq,
-            true
-        );
+        self.layout = Self::build_layout(self.num_bins, self.min_freq, self.max_freq, true);
         self.refresh_layout_filters();
     }
 
     pub fn set_window_size(&mut self, window_size: usize) {
-        if window_size == self.window_size { return; }
+        if window_size == self.window_size {
+            return;
+        }
         self.window_size = window_size.max(1);
         // clear current spectrum so stale data not reused
         self.spectrum = None;
         // reset temporal filters (length changes)
         for tf in &self.temporal_filters {
-            if let Ok(mut f) = tf.lock() { f.reset(); }
+            if let Ok(mut f) = tf.lock() {
+                f.reset();
+            }
+        }
+
+        // Update min_freq adaptively
+        let resolution = self.sample_rate as f32 / self.window_size as f32;
+        // Factor 2.0 → require ~2 FFT bins before first visual bin.
+        let dyn_min = resolution * 2.0;
+        let new_min = self.base_min_freq.max(dyn_min);
+        if (new_min - self.min_freq).abs() > 0.1 {
+            self.min_freq = new_min;
+            self.layout = Self::build_layout(self.num_bins, self.min_freq, self.max_freq, true);
+            self.refresh_layout_filters();
         }
     }
 
     pub fn add_spatial_filter<F: SpatialFilter + 'static>(&mut self, f: F) {
         let entry = Arc::new(Mutex::new(f));
         self.spatial_filters.push(entry);
-        self.spatial_filters.sort_by_key(|sf| {
-            sf.lock().ok().map(|r| r.priority()).unwrap_or(100)
-        });
+        self.spatial_filters
+            .sort_by_key(|sf| sf.lock().ok().map(|r| r.priority()).unwrap_or(100));
         self.refresh_layout_filters();
     }
 
@@ -154,7 +165,9 @@ impl Visualizer {
     }
 
     fn apply_norm(&self, bins: &mut Vec<f32>) {
-        for p in bins.iter_mut() { *p = p.sqrt(); }
+        for p in bins.iter_mut() {
+            *p = p.sqrt();
+        }
         let peak = bins.iter().fold(0.0_f32, |m, v| m.max(*v)).max(1e-12);
         let window_rms = self.window_rms;
         let loudness = if window_rms <= self.rms_floor {
@@ -182,10 +195,12 @@ impl Visualizer {
 
         for &(freq, mag) in spectrum.data() {
             let freq_val = freq.val().ln();
-            if freq_val < layout.log_min || freq_val > layout.log_max { continue; }
+            if freq_val < layout.log_min || freq_val > layout.log_max {
+                continue;
+            }
             let bin_index = f32::floor(
                 (freq_val - layout.log_min) / (layout.log_max - layout.log_min)
-                * (num_bins - 1) as f32
+                    * (num_bins - 1) as f32,
             ) as usize;
 
             if bin_index < num_bins {

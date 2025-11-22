@@ -42,9 +42,9 @@ impl GaussianFilter {
 
     fn apply_single_pass(&self, samples: &mut [f32]) {
         let mut out = vec![0.0f32; samples.len()];
-        
+
         let num_samples = samples.len();
-    
+
         for i in 0..num_samples {
             let mut acc = 0.0;
             for (k, &weight) in self.kernel.iter().enumerate() {
@@ -55,7 +55,7 @@ impl GaussianFilter {
             }
             out[i] = acc;
         }
-        
+
         samples.copy_from_slice(&out);
     }
 }
@@ -69,5 +69,7 @@ impl SpatialFilter for GaussianFilter {
         }
     }
 
-    fn priority(&self) -> usize { 50 }
+    fn priority(&self) -> usize {
+        50
+    }
 }

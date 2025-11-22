@@ -1,11 +1,10 @@
-pub mod gaussian;
-pub mod eq_curve;
 pub mod a_weighting;
+pub mod eq_curve;
+pub mod gaussian;
 
-pub use gaussian::GaussianFilter;
-pub use eq_curve::EqCurveFilter;
 pub use a_weighting::AWeightingFilter;
-
+pub use eq_curve::EqCurveFilter;
+pub use gaussian::GaussianFilter;
 
 // Bin layout info passed to filters needing bin center frequencies.
 #[derive(Clone)]
@@ -23,5 +22,7 @@ pub trait SpatialFilter: Send + Sync {
 
     fn process(&self, samples: &mut [f32]);
 
-    fn priority(&self) -> usize { 50 }
+    fn priority(&self) -> usize {
+        50
+    }
 }

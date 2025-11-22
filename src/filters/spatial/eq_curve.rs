@@ -1,4 +1,4 @@
-use crate::filters::{SpatialFilter, BinLayout};
+use crate::filters::{BinLayout, SpatialFilter};
 
 /// Generic EQ curve (piecewise linear in log-frequency).
 /// Control points are (frequency_hz, gain_db).
@@ -26,5 +26,7 @@ impl SpatialFilter for EqCurveFilter {
         // Implement EQ curve processing here
     }
 
-    fn priority(&self) -> usize { 20 }
+    fn priority(&self) -> usize {
+        20
+    }
 }

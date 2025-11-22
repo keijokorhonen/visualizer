@@ -10,7 +10,10 @@ pub struct ExponentialFilter {
 
 impl ExponentialFilter {
     pub fn new(alpha: f32) -> Self {
-        Self { alpha, prev: Vec::new() }
+        Self {
+            alpha,
+            prev: Vec::new(),
+        }
     }
 }
 

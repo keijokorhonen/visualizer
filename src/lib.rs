@@ -1,14 +1,9 @@
-pub mod visualizer;
-pub mod frontend;
 pub mod filters;
+pub mod frontend;
+pub mod visualizer;
 
-pub use visualizer::Visualizer;
 pub use frontend::{FrontendKind, make_frontend};
+pub use visualizer::Visualizer;
 // pub use frontend::bevy_vis::BevyApp;
 
-pub use filters::{
-    SpatialFilter,
-    TemporalFilter,
-    GaussianFilter,
-    ExponentialFilter
-};
+pub use filters::{ExponentialFilter, GaussianFilter, SpatialFilter, TemporalFilter};

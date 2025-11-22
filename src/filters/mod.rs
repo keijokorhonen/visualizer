@@ -1,5 +1,5 @@
 pub mod spatial;
 pub mod temporal;
 
-pub use spatial::{GaussianFilter, EqCurveFilter, AWeightingFilter, BinLayout, SpatialFilter};
-pub use temporal::{ExponentialFilter, AttackReleaseFilter, PeakHoldDecayFilter, TemporalFilter};
+pub use spatial::{AWeightingFilter, BinLayout, EqCurveFilter, GaussianFilter, SpatialFilter};
+pub use temporal::{AttackReleaseFilter, ExponentialFilter, PeakHoldDecayFilter, TemporalFilter};
