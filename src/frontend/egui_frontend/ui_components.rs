@@ -1,10 +1,24 @@
-use egui::{self, Ui};
-
 use crate::filters::*;
 use crate::frontend::egui_frontend::ControlSettings;
+use egui;
 
 pub trait UiComponent {
     fn ui(&mut self, _ui: &mut egui::Ui) {}
+    fn group_name(&self) -> &'static str {
+        ""
+    }
+}
+
+fn add_checkbox(ui: &mut egui::Ui, enabled: &mut bool, label: &str) {
+    ui.horizontal(|ui| {
+        ui.add(egui::Checkbox::without_text(enabled));
+        if !*enabled {
+            ui.add_enabled_ui(false, |ui| {
+                ui.label(format!("{} (disabled)", label));
+            });
+            return;
+        }
+    });
 }
 
 impl UiComponent for GaussianFilter {
@@ -13,14 +27,12 @@ impl UiComponent for GaussianFilter {
         let old_radius = self.radius;
 
         ui.horizontal(|ui| {
-            ui.checkbox(&mut self.enabled, "");
+            let label = self.group_name();
+            add_checkbox(ui, &mut self.enabled, label);
             if !self.enabled {
-                ui.add_enabled_ui(false, |ui| {
-                    ui.label("Gaussian (disabled)");
-                });
                 return;
             }
-            ui.label("Gaussian:");
+            ui.label(format!("{}:", label));
             ui.add(
                 egui::DragValue::new(&mut self.sigma)
                     .speed(0.1)
@@ -43,36 +55,44 @@ impl UiComponent for GaussianFilter {
 
         self.recompute_if_needed(old_sigma, old_radius);
     }
+
+    fn group_name(&self) -> &'static str {
+        "Gaussian"
+    }
 }
 
-impl UiComponent for EqCurveFilter {}
+impl UiComponent for EqCurveFilter {
+    fn group_name(&self) -> &'static str {
+        "EQ Curve"
+    }
+}
 
 impl UiComponent for AWeightingFilter {
     fn ui(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.checkbox(&mut self.enabled, "");
+            let label = self.group_name();
+            add_checkbox(ui, &mut self.enabled, label);
             if !self.enabled {
-                ui.add_enabled_ui(false, |ui| {
-                    ui.label("A-Weighting (disabled)");
-                });
                 return;
             }
-            ui.label("A-Weighting Filter");
+            ui.label(format!("{}", label));
         });
+    }
+
+    fn group_name(&self) -> &'static str {
+        "A-Weighting"
     }
 }
 
 impl UiComponent for AttackReleaseFilter {
     fn ui(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.checkbox(&mut self.enabled, "");
+            let label = self.group_name();
+            add_checkbox(ui, &mut self.enabled, label);
             if !self.enabled {
-                ui.add_enabled_ui(false, |ui| {
-                    ui.label("Attack-Release (disabled)");
-                });
                 return;
             }
-            ui.label("Attack-Release:");
+            ui.label(format!("{}:", label));
             ui.add(
                 egui::DragValue::new(&mut self.attack_alpha)
                     .speed(0.01)
@@ -87,10 +107,22 @@ impl UiComponent for AttackReleaseFilter {
             );
         });
     }
+
+    fn group_name(&self) -> &'static str {
+        "Attack-Release"
+    }
 }
 
-impl UiComponent for PeakHoldDecayFilter {}
-impl UiComponent for ExponentialFilter {}
+impl UiComponent for PeakHoldDecayFilter {
+    fn group_name(&self) -> &'static str {
+        "Peak-Hold-Decay"
+    }
+}
+impl UiComponent for ExponentialFilter {
+    fn group_name(&self) -> &'static str {
+        "Exponential"
+    }
+}
 
 impl UiComponent for ControlSettings {
     fn ui(&mut self, ui: &mut egui::Ui) {
@@ -106,5 +138,13 @@ impl UiComponent for ControlSettings {
                 ui.selectable_value(&mut self.window_size, size, size.to_string());
             }
         });
+        ui.horizontal(|ui| {
+            ui.label("Color:");
+            ui.color_edit_button_srgba(&mut self.color);
+        });
+    }
+
+    fn group_name(&self) -> &'static str {
+        "Control Settings"
     }
 }

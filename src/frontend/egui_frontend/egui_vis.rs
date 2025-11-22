@@ -11,6 +11,7 @@ use crate::frontend::egui_frontend::UiComponent;
 pub struct ControlSettings {
     pub num_bins: usize,
     pub window_size: usize,
+    pub color: egui::Color32,
 }
 
 impl ControlSettings {
@@ -18,14 +19,13 @@ impl ControlSettings {
         Self {
             num_bins: 50,
             window_size: 2048,
+            color: Color32::DARK_BLUE,
         }
     }
 
-    fn from_visualizer(vis: &Visualizer) -> Self {
-        Self {
-            num_bins: vis.num_bins,
-            window_size: vis.window_size,
-        }
+    fn update_from_visualizer(&mut self, vis: &Visualizer) {
+        self.num_bins = vis.num_bins;
+        self.window_size = vis.window_size;
     }
 }
 
@@ -53,7 +53,7 @@ impl EguiFrontend {
                 if y >= 0.0 {
                     Some(
                         Bar::new(i as f64, y as f64)
-                            .fill(egui::Color32::DARK_BLUE)
+                            .fill(self.control_settings.color)
                             .width(1.0_f64),
                     )
                 } else {
@@ -95,13 +95,13 @@ impl eframe::App for EguiFrontend {
                 egui::CollapsingHeader::new("Visualizer Controls").show(ui, |ui| {
                     ui.set_width(300.0);
 
-                    let (orig_settings, _sample_rate) = if let Ok(vis) = self.visualizer.lock() {
-                        (ControlSettings::from_visualizer(&vis), vis.sample_rate)
+                    if let Ok(vis) = self.visualizer.lock() {
+                        self.control_settings.update_from_visualizer(&vis);
                     } else {
                         return;
                     };
 
-                    let mut edited_settings = orig_settings;
+                    let mut edited_settings = self.control_settings.clone();
 
                     edited_settings.ui(ui);
                     ui.separator();
@@ -128,7 +128,7 @@ impl eframe::App for EguiFrontend {
 
                     ui.separator();
 
-                    let changed = edited_settings != orig_settings;
+                    let changed = edited_settings != self.control_settings;
 
                     if changed {
                         self.control_settings = edited_settings;
