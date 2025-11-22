@@ -1,7 +1,7 @@
-pub mod egui_vis;
+pub mod egui_frontend;
 // pub mod bevy_vis;
 
-pub use egui_vis::EguiFrontend;
+pub use egui_frontend::EguiFrontend;
 // pub use bevy_vis::BevyApp;
 
 use crate::Visualizer;

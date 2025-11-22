@@ -5,7 +5,9 @@ use std::time::Duration;
 
 use crate::Visualizer;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+use crate::frontend::egui_frontend::UiComponent;
+
+#[derive(Clone, Copy, PartialEq)]
 struct ControlSettings {
     num_bins: usize,
     window_size: usize,
@@ -111,14 +113,30 @@ impl eframe::App for EguiFrontend {
 
                     ui.horizontal(|ui| {
                         ui.label("Window size:");
-                        for size in [256, 512, 1024, 2048, 4096] {
+                        for size in [512, 1024, 2048, 4096, 8192] {
                             ui.selectable_value(
                                 &mut edited_settings.window_size,
                                 size,
                                 size.to_string(),
                             );
                         }
+                        // let effective_min =
+                        //     (sample_rate as f32 / edited_settings.window_size as f32) / 2.0;
+                        // ui.label(format!("(Min. Frequency ≈ {:.1} Hz)", effective_min));
                     });
+
+                    ui.separator();
+
+                    ui.label("Spatial Filters:");
+                    if let Ok(vis) = self.visualizer.lock() {
+                        for f in &vis.spatial_filters {
+                            if let Ok(mut filter) = f.lock() {
+                                filter.ui(ui);
+                            }
+                        }
+                    }
+
+                    ui.separator();
 
                     let changed = edited_settings != orig_settings;
 
@@ -133,12 +151,6 @@ impl eframe::App for EguiFrontend {
                             }
                         }
                     }
-
-                    let effective_min =
-                        (sample_rate as f32 / edited_settings.window_size as f32) / 2.0;
-                    ui.label(format!("(Min. Frequency ≈ {:.1} Hz)", effective_min));
-
-                    ui.separator();
                 });
             });
 

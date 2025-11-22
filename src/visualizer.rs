@@ -5,7 +5,7 @@ use spectrum_analyzer::windows::hann_window;
 use spectrum_analyzer::{FrequencyLimit, FrequencySpectrum, samples_fft_to_spectrum};
 
 use crate::filters::{
-    AttackReleaseFilter, BinLayout, GaussianFilter, SpatialFilter, TemporalFilter,
+    AWeightingFilter, AttackReleaseFilter, BinLayout, GaussianFilter, SpatialFilter, TemporalFilter,
 };
 
 pub struct Visualizer {
@@ -16,8 +16,8 @@ pub struct Visualizer {
     base_min_freq: f32,
     min_freq: f32,
     max_freq: f32,
-    spatial_filters: Vec<Arc<Mutex<dyn SpatialFilter>>>,
-    temporal_filters: Vec<Arc<Mutex<dyn TemporalFilter>>>,
+    pub spatial_filters: Vec<Arc<Mutex<dyn SpatialFilter>>>,
+    pub temporal_filters: Vec<Arc<Mutex<dyn TemporalFilter>>>,
     layout: BinLayout,
     window_rms: f32,
     rms_reference: f32,
@@ -40,8 +40,8 @@ impl Visualizer {
             min_freq,
             max_freq,
             spatial_filters: vec![
-                // Arc::new(AWeightingFilter::new()),
                 Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
+                Arc::new(Mutex::new(AWeightingFilter::new())),
             ],
             temporal_filters: vec![Arc::new(Mutex::new(AttackReleaseFilter::new(0.7, 0.9)))],
             layout: layout,

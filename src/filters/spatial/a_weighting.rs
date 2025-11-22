@@ -14,12 +14,14 @@ const A0: f32 = 1.2589254; // 10^(2/20)
 /// * weights: Precomputed weights for each frequency bin.
 pub struct AWeightingFilter {
     weights: Vec<f32>,
+    pub enabled: bool,
 }
 
 impl AWeightingFilter {
     pub fn new() -> Self {
         Self {
             weights: Vec::new(),
+            enabled: true,
         }
     }
 
@@ -46,8 +48,10 @@ impl SpatialFilter for AWeightingFilter {
     }
 
     fn process(&self, samples: &mut [f32]) {
-        for (i, sample) in samples.iter_mut().enumerate() {
-            *sample *= self.weights[i];
+        if self.enabled {
+            for (i, sample) in samples.iter_mut().enumerate() {
+                *sample *= self.weights[i];
+            }
         }
     }
 

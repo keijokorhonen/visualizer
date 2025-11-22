@@ -6,6 +6,8 @@ pub use a_weighting::AWeightingFilter;
 pub use eq_curve::EqCurveFilter;
 pub use gaussian::GaussianFilter;
 
+use crate::frontend::egui_frontend::UiComponent;
+
 // Bin layout info passed to filters needing bin center frequencies.
 #[derive(Clone)]
 pub struct BinLayout {
@@ -17,7 +19,7 @@ pub struct BinLayout {
     pub spacing_log: bool,
 }
 
-pub trait SpatialFilter: Send + Sync {
+pub trait SpatialFilter: Send + Sync + UiComponent {
     fn on_layout_change(&mut self, _layout: &BinLayout) {}
 
     fn process(&self, samples: &mut [f32]);

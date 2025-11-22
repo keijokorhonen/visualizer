@@ -8,8 +8,9 @@ use crate::filters::SpatialFilter;
 pub struct GaussianFilter {
     pub sigma: f32,
     pub radius: usize,
-    pub kernel: Vec<f32>,
     pub num_passes: usize,
+    pub kernel: Vec<f32>,
+    pub enabled: bool,
 }
 
 impl GaussianFilter {
@@ -17,8 +18,9 @@ impl GaussianFilter {
         Self {
             sigma,
             radius,
-            kernel: Self::compute_kernel(sigma, radius),
             num_passes,
+            kernel: Self::compute_kernel(sigma, radius),
+            enabled: true,
         }
     }
 
@@ -58,14 +60,22 @@ impl GaussianFilter {
 
         samples.copy_from_slice(&out);
     }
+
+    pub fn recompute_if_needed(&mut self, old_sigma: f32, old_radius: usize) {
+        if (self.sigma - old_sigma).abs() > f32::EPSILON || self.radius != old_radius {
+            self.kernel = Self::compute_kernel(self.sigma, self.radius);
+        }
+    }
 }
 
 impl SpatialFilter for GaussianFilter {
     /// Apply Gaussian filter to the input samples in-place.
     /// Convolves the samples with the Gaussian kernel.
     fn process(&self, samples: &mut [f32]) {
-        for _ in 0..self.num_passes {
-            self.apply_single_pass(samples);
+        if self.enabled {
+            for _ in 0..self.num_passes {
+                self.apply_single_pass(samples);
+            }
         }
     }
 
