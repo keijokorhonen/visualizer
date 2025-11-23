@@ -8,8 +8,7 @@ use crate::filters::{
     AWeightingFilter, AttackReleaseFilter, BinLayout, GaussianFilter, SpatialFilter, TemporalFilter,
 };
 
-pub struct Visualizer {
-    spectrum: Option<FrequencySpectrum>,
+pub struct VisualizerConfig {
     pub sample_rate: u32,
     pub window_size: usize,
     pub num_bins: usize,
@@ -25,60 +24,7 @@ pub struct Visualizer {
     rms_gamma: f32,
 }
 
-impl Visualizer {
-    /// Default constructor. Frequency limits set to 20 Hz - Nyquist.
-    pub fn new(sample_rate: u32, window_size: usize, num_bins: usize) -> Self {
-        let min_freq = 20.0;
-        let max_freq = sample_rate as f32 / 2.0;
-        let layout = Self::build_layout(num_bins, min_freq, max_freq, true);
-        let visualizer = Self {
-            spectrum: None,
-            sample_rate,
-            window_size,
-            num_bins,
-            base_min_freq: min_freq,
-            min_freq,
-            max_freq,
-            spatial_filters: vec![
-                Arc::new(Mutex::new(AWeightingFilter::new())),
-                Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
-            ],
-            temporal_filters: vec![Arc::new(Mutex::new(AttackReleaseFilter::new(0.7, 0.9)))],
-            layout: layout,
-            window_rms: 0.0,
-            rms_reference: 0.6,
-            rms_floor: 0.01,
-            rms_gamma: 0.7,
-        };
-        visualizer.refresh_layout_filters();
-        visualizer
-    }
-
-    fn build_layout(num_bins: usize, min_freq: f32, max_freq: f32, log: bool) -> BinLayout {
-        let min_freq = min_freq.max(1e-6);
-        let max_freq = max_freq.max(min_freq + 1.0);
-        let log_min = min_freq.ln();
-        let log_max = max_freq.ln();
-        let mut centers = Vec::with_capacity(num_bins);
-        for i in 0..num_bins {
-            let t = (i as f32 + 0.5) / num_bins as f32;
-            let f = if log {
-                (log_min + t * (log_max - log_min)).exp()
-            } else {
-                min_freq + t * (max_freq - min_freq)
-            };
-            centers.push(f);
-        }
-        BinLayout {
-            centers,
-            min_freq,
-            max_freq,
-            log_min,
-            log_max,
-            spacing_log: log,
-        }
-    }
-
+impl VisualizerConfig {
     fn refresh_layout_filters(&self) {
         for filter in &self.spatial_filters {
             if let Ok(mut f) = filter.lock() {
@@ -87,30 +33,9 @@ impl Visualizer {
         }
     }
 
-    pub fn update_spectrum(&mut self, samples: &[f32]) {
-        let window = hann_window(&samples[0..self.window_size]);
-        let mut rms = 0.0_f32;
-        for &x in samples.iter().take(self.window_size) {
-            rms += x * x;
-        }
-        rms /= self.window_size as f32;
-        rms = rms.sqrt();
-        self.window_rms = rms;
-
-        let spectrum = samples_fft_to_spectrum(
-            &window,
-            self.sample_rate,
-            FrequencyLimit::Range(self.min_freq, self.max_freq),
-            Some(&divide_by_N_sqrt),
-        )
-        .ok();
-
-        self.spectrum = spectrum;
-    }
-
     pub fn set_num_bins(&mut self, num_bins: usize) {
         self.num_bins = num_bins.max(1);
-        self.layout = Self::build_layout(self.num_bins, self.min_freq, self.max_freq, true);
+        self.layout = BinLayout::build_layout(self.num_bins, self.min_freq, self.max_freq, true);
         self.refresh_layout_filters();
     }
 
@@ -119,8 +44,7 @@ impl Visualizer {
             return;
         }
         self.window_size = window_size.max(1);
-        // clear current spectrum so stale data not reused
-        self.spectrum = None;
+
         // reset temporal filters (length changes)
         for tf in &self.temporal_filters {
             if let Ok(mut f) = tf.lock() {
@@ -135,7 +59,8 @@ impl Visualizer {
         let new_min = self.base_min_freq.max(dyn_min);
         if (new_min - self.min_freq).abs() > 0.1 {
             self.min_freq = new_min;
-            self.layout = Self::build_layout(self.num_bins, self.min_freq, self.max_freq, true);
+            self.layout =
+                BinLayout::build_layout(self.num_bins, self.min_freq, self.max_freq, true);
             self.refresh_layout_filters();
         }
     }
@@ -147,21 +72,64 @@ impl Visualizer {
             .sort_by_key(|sf| sf.lock().ok().map(|r| r.priority()).unwrap_or(100));
         self.refresh_layout_filters();
     }
+}
 
-    fn apply_spatial_filters(&self, bins: &mut Vec<f32>) {
-        for filter in &self.spatial_filters {
-            if let Ok(f) = filter.lock() {
-                f.process(bins);
-            }
-        }
+pub struct Visualizer {
+    spectrum: Option<FrequencySpectrum>,
+    pub config: VisualizerConfig,
+}
+
+impl Visualizer {
+    /// Default constructor. Frequency limits set to 20 Hz - Nyquist.
+    pub fn new(sample_rate: u32, window_size: usize, num_bins: usize) -> Self {
+        let min_freq = 20.0;
+        let max_freq = sample_rate as f32 / 2.0;
+        let layout = BinLayout::build_layout(num_bins, min_freq, max_freq, true);
+        let config = VisualizerConfig {
+            sample_rate,
+            window_size,
+            num_bins,
+            base_min_freq: min_freq,
+            min_freq,
+            max_freq,
+            spatial_filters: vec![
+                Arc::new(Mutex::new(AWeightingFilter::new())),
+                Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
+            ],
+            temporal_filters: vec![Arc::new(Mutex::new(AttackReleaseFilter::new(0.7, 0.9)))],
+            layout,
+            window_rms: 0.0,
+            rms_reference: 0.6,
+            rms_floor: 0.01,
+            rms_gamma: 0.7,
+        };
+        let visualizer = Self {
+            spectrum: None,
+            config,
+        };
+        visualizer.config.refresh_layout_filters();
+        visualizer
     }
 
-    fn apply_temporal_filters(&self, bins: &mut Vec<f32>) {
-        for filter in &self.temporal_filters {
-            if let Ok(mut f) = filter.lock() {
-                f.process(bins);
-            }
+    pub fn update_spectrum(&mut self, samples: &[f32]) {
+        let window = hann_window(&samples[0..self.config.window_size]);
+        let mut rms = 0.0_f32;
+        for &x in samples.iter().take(self.config.window_size) {
+            rms += x * x;
         }
+        rms /= self.config.window_size as f32;
+        rms = rms.sqrt();
+        self.config.window_rms = rms;
+
+        let spectrum = samples_fft_to_spectrum(
+            &window,
+            self.config.sample_rate,
+            FrequencyLimit::Range(self.config.min_freq, self.config.max_freq),
+            Some(&divide_by_N_sqrt),
+        )
+        .ok();
+
+        self.spectrum = spectrum;
     }
 
     fn apply_norm(&self, bins: &mut Vec<f32>) {
@@ -169,12 +137,13 @@ impl Visualizer {
             *p = p.sqrt();
         }
         let peak = bins.iter().fold(0.0_f32, |m, v| m.max(*v)).max(1e-12);
-        let window_rms = self.window_rms;
-        let loudness = if window_rms <= self.rms_floor {
+        let window_rms = self.config.window_rms;
+        let loudness = if window_rms <= self.config.rms_floor {
             0.0
         } else {
-            let norm = (window_rms - self.rms_floor) / (self.rms_reference - self.rms_floor);
-            norm.clamp(0.0, 1.0).powf(self.rms_gamma)
+            let norm = (window_rms - self.config.rms_floor)
+                / (self.config.rms_reference - self.config.rms_floor);
+            norm.clamp(0.0, 1.0).powf(self.config.rms_gamma)
         };
 
         let scale = loudness.max(0.001) / peak;
@@ -191,7 +160,7 @@ impl Visualizer {
             None => return bins,
         };
 
-        let layout = self.layout.clone();
+        let layout = self.config.layout.clone();
 
         for &(freq, mag) in spectrum.data() {
             let freq_val = freq.val().ln();
@@ -211,8 +180,24 @@ impl Visualizer {
         bins
     }
 
+    fn apply_spatial_filters(&self, bins: &mut Vec<f32>) {
+        for filter in &self.config.spatial_filters {
+            if let Ok(f) = filter.lock() {
+                f.process(bins);
+            }
+        }
+    }
+
+    fn apply_temporal_filters(&self, bins: &mut Vec<f32>) {
+        for filter in &self.config.temporal_filters {
+            if let Ok(mut f) = filter.lock() {
+                f.process(bins);
+            }
+        }
+    }
+
     pub fn visualization_data(&self) -> Vec<f32> {
-        let mut bins = self.binned_spectrum(self.num_bins);
+        let mut bins = self.binned_spectrum(self.config.num_bins);
         self.apply_spatial_filters(&mut bins);
         self.apply_temporal_filters(&mut bins);
         self.apply_norm(&mut bins);

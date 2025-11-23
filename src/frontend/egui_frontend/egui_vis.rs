@@ -24,8 +24,8 @@ impl ControlSettings {
     }
 
     fn update_from_visualizer(&mut self, vis: &Visualizer) {
-        self.num_bins = vis.num_bins;
-        self.window_size = vis.window_size;
+        self.num_bins = vis.config.num_bins;
+        self.window_size = vis.config.window_size;
     }
 }
 
@@ -108,7 +108,7 @@ impl eframe::App for EguiFrontend {
 
                     ui.label("Spatial Filters:");
                     if let Ok(vis) = self.visualizer.lock() {
-                        for f in &vis.spatial_filters {
+                        for f in &vis.config.spatial_filters {
                             if let Ok(mut filter) = f.lock() {
                                 filter.ui(ui);
                             }
@@ -119,7 +119,7 @@ impl eframe::App for EguiFrontend {
 
                     ui.label("Temporal Filters:");
                     if let Ok(vis) = self.visualizer.lock() {
-                        for f in &vis.temporal_filters {
+                        for f in &vis.config.temporal_filters {
                             if let Ok(mut filter) = f.lock() {
                                 filter.ui(ui);
                             }
@@ -133,11 +133,11 @@ impl eframe::App for EguiFrontend {
                     if changed {
                         self.control_settings = edited_settings;
                         if let Ok(mut vis) = self.visualizer.lock() {
-                            if vis.num_bins != edited_settings.num_bins {
-                                vis.set_num_bins(edited_settings.num_bins);
+                            if vis.config.num_bins != edited_settings.num_bins {
+                                vis.config.set_num_bins(edited_settings.num_bins);
                             }
-                            if vis.window_size != edited_settings.window_size {
-                                vis.set_window_size(edited_settings.window_size);
+                            if vis.config.window_size != edited_settings.window_size {
+                                vis.config.set_window_size(edited_settings.window_size);
                             }
                         }
                     }

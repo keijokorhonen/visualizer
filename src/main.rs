@@ -54,7 +54,7 @@ fn main() {
 
                 // For visualization: process FFT on current window
                 if let Ok(mut vis) = visualizer_cb.lock() {
-                    let window_size_cur = vis.window_size;
+                    let window_size_cur = vis.config.window_size;
                     if sample_pos >= window_size_cur {
                         let start = sample_pos - window_size_cur;
                         let window_samples = &samples[start..sample_pos];

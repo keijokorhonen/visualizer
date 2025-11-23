@@ -42,7 +42,7 @@ impl UiComponent for GaussianFilter {
             ui.add(
                 egui::DragValue::new(&mut self.radius)
                     .speed(1)
-                    .range(0..=20)
+                    .range(0..=128)
                     .prefix("r="),
             );
             ui.add(
@@ -130,7 +130,7 @@ impl UiComponent for ControlSettings {
         ui.horizontal(|ui| {
             ui.label("Bins:");
             ui.style_mut().spacing.slider_width = 200.0;
-            ui.add(egui::Slider::new(&mut self.num_bins, 8..=256));
+            ui.add(egui::Slider::new(&mut self.num_bins, 8..=512));
         });
         ui.horizontal(|ui| {
             ui.label("Window:");
