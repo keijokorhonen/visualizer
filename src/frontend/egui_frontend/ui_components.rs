@@ -61,12 +61,6 @@ impl UiComponent for GaussianFilter {
     }
 }
 
-impl UiComponent for EqCurveFilter {
-    fn group_name(&self) -> &'static str {
-        "EQ Curve"
-    }
-}
-
 impl UiComponent for AWeightingFilter {
     fn ui(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
@@ -109,13 +103,13 @@ impl UiComponent for AttackReleaseFilter {
     }
 
     fn group_name(&self) -> &'static str {
-        "Attack-Release"
+        "Attack/Release"
     }
 }
 
 impl UiComponent for PeakHoldDecayFilter {
     fn group_name(&self) -> &'static str {
-        "Peak-Hold-Decay"
+        "Peak-Hold & Decay"
     }
 }
 impl UiComponent for ExponentialFilter {

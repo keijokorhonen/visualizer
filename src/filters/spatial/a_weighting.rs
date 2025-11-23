@@ -54,8 +54,4 @@ impl SpatialFilter for AWeightingFilter {
             }
         }
     }
-
-    fn priority(&self) -> usize {
-        10
-    }
 }

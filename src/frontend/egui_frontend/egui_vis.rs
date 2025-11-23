@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use crate::Visualizer;
 
+use crate::filters::{AWeightingFilter, GaussianFilter};
 use crate::frontend::egui_frontend::UiComponent;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -114,6 +115,19 @@ impl eframe::App for EguiFrontend {
                             }
                         }
                     }
+
+                    ui.menu_button("Add Filter", |ui| {
+                        if ui.button("Gaussian").clicked() {
+                            if let Ok(mut vis) = self.visualizer.lock() {
+                                vis.config.add_spatial_filter(GaussianFilter::default());
+                            }
+                        }
+                        if ui.button("A-Weighting").clicked() {
+                            if let Ok(mut vis) = self.visualizer.lock() {
+                                vis.config.add_spatial_filter(AWeightingFilter::new());
+                            }
+                        }
+                    });
 
                     ui.separator();
 

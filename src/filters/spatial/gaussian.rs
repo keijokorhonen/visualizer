@@ -24,6 +24,13 @@ impl GaussianFilter {
         }
     }
 
+    pub fn default() -> Self {
+        let sigma = 2.0;
+        let radius = 4;
+        let num_passes = 3;
+        Self::new(sigma, radius, num_passes)
+    }
+
     fn compute_kernel(sigma: f32, radius: usize) -> Vec<f32> {
         let mut kernel = Vec::with_capacity(2 * radius + 1);
         let denom = 2.0 * sigma * sigma;
@@ -77,9 +84,5 @@ impl SpatialFilter for GaussianFilter {
                 self.apply_single_pass(samples);
             }
         }
-    }
-
-    fn priority(&self) -> usize {
-        50
     }
 }

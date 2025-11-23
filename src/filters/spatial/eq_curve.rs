@@ -25,8 +25,4 @@ impl SpatialFilter for EqCurveFilter {
     fn process(&self, samples: &mut [f32]) {
         // Implement EQ curve processing here
     }
-
-    fn priority(&self) -> usize {
-        20
-    }
 }

@@ -5,7 +5,7 @@ use spectrum_analyzer::windows::hann_window;
 use spectrum_analyzer::{FrequencyLimit, FrequencySpectrum, samples_fft_to_spectrum};
 
 use crate::filters::{
-    AWeightingFilter, AttackReleaseFilter, BinLayout, GaussianFilter, SpatialFilter, TemporalFilter,
+    AttackReleaseFilter, BinLayout, GaussianFilter, SpatialFilter, TemporalFilter,
 };
 
 pub struct VisualizerConfig {
@@ -68,9 +68,13 @@ impl VisualizerConfig {
     pub fn add_spatial_filter<F: SpatialFilter + 'static>(&mut self, f: F) {
         let entry = Arc::new(Mutex::new(f));
         self.spatial_filters.push(entry);
-        self.spatial_filters
-            .sort_by_key(|sf| sf.lock().ok().map(|r| r.priority()).unwrap_or(100));
         self.refresh_layout_filters();
+    }
+
+    pub fn remove_spatial_filter_at(&mut self, idx: usize) {
+        if idx < self.spatial_filters.len() {
+            self.spatial_filters.remove(idx);
+        }
     }
 }
 
@@ -92,10 +96,7 @@ impl Visualizer {
             base_min_freq: min_freq,
             min_freq,
             max_freq,
-            spatial_filters: vec![
-                Arc::new(Mutex::new(AWeightingFilter::new())),
-                Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3))),
-            ],
+            spatial_filters: vec![Arc::new(Mutex::new(GaussianFilter::new(3.0, 2, 3)))],
             temporal_filters: vec![Arc::new(Mutex::new(AttackReleaseFilter::new(0.7, 0.9)))],
             layout,
             window_rms: 0.0,
