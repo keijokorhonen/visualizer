@@ -7,6 +7,7 @@ pub use exponential::ExponentialFilter;
 pub use peakholddecay::PeakHoldDecayFilter;
 
 use crate::frontend::egui_frontend::UiComponent;
+use std::any::TypeId;
 
 pub trait TemporalFilter: Send + Sync + UiComponent {
     fn process(&mut self, samples: &mut [f32]);
@@ -18,5 +19,21 @@ pub trait TemporalFilter: Send + Sync + UiComponent {
         if let Some(v) = self.state_vec() {
             v.fill(0.0);
         }
+    }
+
+    fn type_id(&self) -> TypeId
+    where
+        Self: 'static,
+    {
+        TypeId::of::<Self>()
+    }
+}
+
+impl<T> From<T> for Box<dyn TemporalFilter>
+where
+    T: TemporalFilter + 'static,
+{
+    fn from(value: T) -> Self {
+        Box::new(value)
     }
 }

@@ -18,7 +18,7 @@ pub struct AWeightingFilter {
 }
 
 impl AWeightingFilter {
-    pub fn new() -> Self {
+    pub fn default() -> Self {
         Self {
             weights: Vec::new(),
             enabled: true,
@@ -48,6 +48,9 @@ impl SpatialFilter for AWeightingFilter {
     }
 
     fn process(&self, samples: &mut [f32]) {
+        if !self.enabled || self.weights.len() != samples.len() {
+            return;
+        }
         if self.enabled {
             for (i, sample) in samples.iter_mut().enumerate() {
                 *sample *= self.weights[i];

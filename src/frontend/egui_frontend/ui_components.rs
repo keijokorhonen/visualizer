@@ -1,3 +1,4 @@
+use crate::filters::registry::spatial_factories;
 use crate::filters::*;
 use crate::frontend::egui_frontend::ControlSettings;
 use egui;
@@ -19,6 +20,54 @@ fn add_checkbox(ui: &mut egui::Ui, enabled: &mut bool, label: &str) {
             return;
         }
     });
+}
+
+impl UiComponent for FilterManager {
+    fn ui(&mut self, ui: &mut egui::Ui) {
+        ui.label("Spatial Filters:");
+        // If SpatialFilter extends UiComponent, we can just call its ui via trait upcasting.
+        for f in self.spatial_filters() {
+            if let Some(mut filter) = f.try_lock() {
+                filter.ui(ui);
+            }
+        }
+        ui.menu_button("Add Filter", |ui| {
+            for f in spatial_factories() {
+                if self.is_spatial_active_type(f.type_id) {
+                    continue;
+                }
+                if ui.button(f.name).clicked() {
+                    if f.name == "Gaussian" {
+                        self.add_spatial_filter(GaussianFilter::default());
+                        ui.close();
+                    }
+                    if f.name == "A-Weighting" {
+                        self.add_spatial_filter(AWeightingFilter::default());
+                        ui.close();
+                    }
+                }
+            }
+            if spatial_factories()
+                .iter()
+                .all(|f| self.is_spatial_active_type(f.type_id))
+            {
+                ui.label("No more filters");
+            }
+        });
+
+        ui.separator();
+
+        ui.label("Temporal Filters:");
+        for f in self.temporal_filters() {
+            if let Some(mut filter) = f.try_lock() {
+                filter.ui(ui);
+            }
+        }
+    }
+
+    fn group_name(&self) -> &'static str {
+        "Filter Manager"
+    }
 }
 
 impl UiComponent for GaussianFilter {

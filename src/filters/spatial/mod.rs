@@ -5,6 +5,8 @@ pub use a_weighting::AWeightingFilter;
 // pub use eq_curve::EqCurveFilter;
 pub use gaussian::GaussianFilter;
 
+use std::any::TypeId;
+
 use crate::frontend::egui_frontend::UiComponent;
 
 // Bin layout info passed to filters needing bin center frequencies.
@@ -49,4 +51,20 @@ pub trait SpatialFilter: Send + Sync + UiComponent {
     fn on_layout_change(&mut self, _layout: &BinLayout) {}
 
     fn process(&self, samples: &mut [f32]);
+
+    fn type_id(&self) -> TypeId
+    where
+        Self: 'static,
+    {
+        TypeId::of::<Self>()
+    }
+}
+
+impl<T> From<T> for Box<dyn SpatialFilter>
+where
+    T: SpatialFilter + 'static,
+{
+    fn from(value: T) -> Self {
+        Box::new(value)
+    }
 }
