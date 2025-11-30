@@ -36,13 +36,13 @@ impl UiComponent for FilterManager {
                     let at_bottom = idx + 1 == ids.len();
 
                     if ui
-                        .add_enabled(!at_top, egui::Button::new("^").small())
+                        .add_enabled(!at_top, egui::Button::new("⏶").small())
                         .clicked()
                     {
                         self.move_spatial_filter(*id, idx - 1);
                     }
                     if ui
-                        .add_enabled(!at_bottom, egui::Button::new("v").small())
+                        .add_enabled(!at_bottom, egui::Button::new("⏷").small())
                         .clicked()
                     {
                         self.move_spatial_filter(*id, idx + 1);
