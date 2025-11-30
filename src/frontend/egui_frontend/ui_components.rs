@@ -25,12 +25,38 @@ fn add_checkbox(ui: &mut egui::Ui, enabled: &mut bool, label: &str) {
 impl UiComponent for FilterManager {
     fn ui(&mut self, ui: &mut egui::Ui) {
         ui.label("Spatial Filters:");
-        // If SpatialFilter extends UiComponent, we can just call its ui via trait upcasting.
-        for f in self.spatial_filters() {
-            if let Some(mut filter) = f.try_lock() {
-                filter.ui(ui);
-            }
+
+        let ids: Vec<usize> = self.spatial_filters().iter().map(|e| e.id).collect();
+
+        for (idx, id) in ids.iter().enumerate() {
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing.y = 2.0;
+                    let at_top = idx == 0;
+                    let at_bottom = idx + 1 == ids.len();
+
+                    if ui
+                        .add_enabled(!at_top, egui::Button::new("^").small())
+                        .clicked()
+                    {
+                        self.move_spatial_filter(*id, idx - 1);
+                    }
+                    if ui
+                        .add_enabled(!at_bottom, egui::Button::new("v").small())
+                        .clicked()
+                    {
+                        self.move_spatial_filter(*id, idx + 1);
+                    }
+                });
+
+                if let Some(entry) = self.spatial_filters().iter().find(|e| e.id == *id) {
+                    if let Some(mut f) = entry.try_lock() {
+                        f.ui(ui);
+                    }
+                }
+            });
         }
+
         ui.menu_button("Add Filter", |ui| {
             for f in spatial_factories() {
                 if self.is_spatial_active_type(f.type_id) {

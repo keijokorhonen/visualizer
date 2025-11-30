@@ -2,9 +2,7 @@ use spectrum_analyzer::scaling::divide_by_N_sqrt;
 use spectrum_analyzer::windows::hann_window;
 use spectrum_analyzer::{FrequencyLimit, FrequencySpectrum, samples_fft_to_spectrum};
 
-use crate::filters::{
-    AttackReleaseFilter, BinLayout, FilterManager, GaussianFilter, SpatialFilter, TemporalFilter,
-};
+use crate::filters::{AttackReleaseFilter, BinLayout, FilterManager, GaussianFilter};
 
 pub struct VisualizerConfig {
     pub sample_rate: u32,
@@ -14,7 +12,7 @@ pub struct VisualizerConfig {
     min_freq: f32,
     max_freq: f32,
     pub filter_manager: FilterManager,
-    layout: BinLayout,
+    pub layout: BinLayout,
     window_rms: f32,
     rms_reference: f32,
     rms_floor: f32,
@@ -25,7 +23,7 @@ impl VisualizerConfig {
     pub fn set_num_bins(&mut self, num_bins: usize) {
         self.num_bins = num_bins.max(1);
         self.layout = BinLayout::build_layout(self.num_bins, self.min_freq, self.max_freq, true);
-        self.filter_manager.refresh_layout(&self.layout);
+        self.filter_manager.refresh_layout();
     }
 
     pub fn set_window_size(&mut self, window_size: usize) {
@@ -46,29 +44,8 @@ impl VisualizerConfig {
             self.min_freq = new_min;
             self.layout =
                 BinLayout::build_layout(self.num_bins, self.min_freq, self.max_freq, true);
-            self.filter_manager.refresh_layout(&self.layout);
+            self.filter_manager.refresh_layout();
         }
-    }
-
-    pub fn add_spatial_filter<T>(&mut self, filter: T) -> usize
-    where
-        T: SpatialFilter + 'static,
-    {
-        let id = self.filter_manager.add_spatial_filter(filter);
-        // initialize the new filter using current layout
-        if let Some(entry) = self.filter_manager.spatial_filters().last() {
-            if let Some(mut guard) = entry.try_lock() {
-                guard.on_layout_change(&self.layout);
-            }
-        }
-        id
-    }
-
-    pub fn add_temporal_filter<T>(&mut self, filter: T) -> usize
-    where
-        T: TemporalFilter + 'static,
-    {
-        self.filter_manager.add_temporal_filter(filter)
     }
 }
 
@@ -84,7 +61,7 @@ impl Visualizer {
         let max_freq = sample_rate as f32 / 2.0;
         let layout = BinLayout::build_layout(num_bins, min_freq, max_freq, true);
 
-        let mut filter_manager = FilterManager::new();
+        let mut filter_manager = FilterManager::new(layout.clone());
         filter_manager.add_spatial_filter(GaussianFilter::new(3.0, 2, 3));
         filter_manager.add_temporal_filter(AttackReleaseFilter::new(0.7, 0.9));
 
@@ -106,10 +83,7 @@ impl Visualizer {
             spectrum: None,
             config,
         };
-        visualizer
-            .config
-            .filter_manager
-            .refresh_layout(&visualizer.config.layout);
+        visualizer.config.filter_manager.refresh_layout();
         visualizer
     }
 

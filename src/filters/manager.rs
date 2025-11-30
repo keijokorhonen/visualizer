@@ -3,9 +3,9 @@ use std::any::TypeId;
 use std::sync::{Arc, Mutex};
 
 pub struct FilterEntry<T: ?Sized> {
-    id: usize,
-    type_id: TypeId,
-    filter: Arc<Mutex<T>>,
+    pub id: usize,
+    pub type_id: TypeId,
+    pub filter: Arc<Mutex<T>>,
 }
 
 impl<T: ?Sized> FilterEntry<T> {
@@ -18,14 +18,16 @@ pub struct FilterManager {
     spatial_filters: Vec<FilterEntry<dyn SpatialFilter>>,
     temporal_filters: Vec<FilterEntry<dyn TemporalFilter>>,
     next_id: usize,
+    layout: BinLayout,
 }
 
 impl FilterManager {
-    pub fn new() -> Self {
+    pub fn new(layout: BinLayout) -> Self {
         FilterManager {
             spatial_filters: Vec::new(),
             temporal_filters: Vec::new(),
             next_id: 0,
+            layout,
         }
     }
 
@@ -80,6 +82,7 @@ impl FilterManager {
             type_id: tid,
             filter: Arc::new(Mutex::new(filter)),
         });
+        self.refresh_layout();
 
         id
     }
@@ -151,10 +154,15 @@ impl FilterManager {
         }
     }
 
-    pub fn refresh_layout(&self, layout: &BinLayout) {
+    pub fn update_layout(&mut self, layout: BinLayout) {
+        self.layout = layout;
+        self.refresh_layout();
+    }
+
+    pub fn refresh_layout(&self) {
         for entry in &self.spatial_filters {
             if let Ok(mut f) = entry.filter.lock() {
-                f.on_layout_change(layout);
+                f.on_layout_change(&self.layout);
             }
         }
     }

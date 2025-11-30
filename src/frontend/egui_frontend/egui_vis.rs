@@ -125,6 +125,8 @@ impl eframe::App for EguiFrontend {
                             if vis.config.window_size != edited_settings.window_size {
                                 vis.config.set_window_size(edited_settings.window_size);
                             }
+                            let layout = vis.config.layout.clone();
+                            vis.config.filter_manager.update_layout(layout);
                         }
                     }
                 });

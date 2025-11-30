@@ -59,12 +59,3 @@ pub trait SpatialFilter: Send + Sync + UiComponent {
         TypeId::of::<Self>()
     }
 }
-
-impl<T> From<T> for Box<dyn SpatialFilter>
-where
-    T: SpatialFilter + 'static,
-{
-    fn from(value: T) -> Self {
-        Box::new(value)
-    }
-}

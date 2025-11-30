@@ -48,7 +48,7 @@ impl SpatialFilter for AWeightingFilter {
     }
 
     fn process(&self, samples: &mut [f32]) {
-        if !self.enabled || self.weights.len() != samples.len() {
+        if self.weights.len() != samples.len() {
             return;
         }
         if self.enabled {
